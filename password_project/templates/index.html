@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SecurePass Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- 🔥 BACKGROUND -->
+<div id="bg-animation"></div>
+
+<div class="card">
+    <h1>🔐 SecurePass Pro</h1>
+    <p class="subtitle">Generate ultra-secure passwords instantly</p>
+
+    <input type="range" id="length" min="4" max="32" value="12">
+    <p>Length: <span id="lenValue">12</span></p>
+
+    <div class="options">
+        <label><input type="checkbox" id="upper" checked> Uppercase</label>
+        <label><input type="checkbox" id="lower" checked> Lowercase</label>
+        <label><input type="checkbox" id="numbers" checked> Numbers</label>
+        <label><input type="checkbox" id="symbols"> Symbols</label>
+    </div>
+
+    <button onclick="generatePassword()">⚡ Generate Password</button>
+
+    <div class="output">
+        <input type="password" id="password" readonly>
+
+        <div class="actions">
+            <button onclick="togglePassword()">👁 Show</button>
+            <button onclick="copyPassword()">📋 Copy</button>
+        </div>
+
+        <div class="strength-bar">
+            <div id="strength-fill"></div>
+        </div>
+        <p id="strength-text"></p>
+    </div>
+</div>
+
+<div id="toast">Copied!</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const lengthSlider = document.getElementById("length");
+    const lenValue = document.getElementById("lenValue");
+    const passwordField = document.getElementById("password");
+
+    lenValue.innerText = lengthSlider.value;
+
+    lengthSlider.oninput = () => {
+        lenValue.innerText = lengthSlider.value;
+    };
+
+    window.generatePassword = async function () {
+        const res = await fetch("/generate", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                length: lengthSlider.value,
+                upper: document.getElementById("upper").checked,
+                lower: document.getElementById("lower").checked,
+                numbers: document.getElementById("numbers").checked,
+                symbols: document.getElementById("symbols").checked
+            })
+        });
+
+        const data = await res.json();
+
+        typePassword(data.password);
+        calculateStrength(data.password);
+    }
+
+    function typePassword(password) {
+        passwordField.value = "";
+        let i = 0;
+
+        const interval = setInterval(() => {
+            passwordField.value += password[i];
+            i++;
+            if (i >= password.length) clearInterval(interval);
+        }, 40);
+    }
+
+    function calculateStrength(password) {
+        let score = 0;
+
+        if (password.length >= 8) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+
+        const widths = ["25%", "50%", "75%", "100%"];
+        const colors = ["red", "orange", "yellow", "lime"];
+        const levels = ["Weak", "Medium", "Strong", "Hacker"];
+
+        document.getElementById("strength-fill").style.width = widths[score-1] || "10%";
+        document.getElementById("strength-fill").style.background = colors[score-1] || "red";
+        document.getElementById("strength-text").innerText = levels[score-1] || "Very Weak";
+    }
+
+    window.copyPassword = function () {
+        passwordField.select();
+        document.execCommand("copy");
+
+        const toast = document.getElementById("toast");
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2000);
+    }
+
+    window.togglePassword = function () {
+        passwordField.type = passwordField.type === "password" ? "text" : "password";
+    }
+
+    // 🔥 BACKGROUND ANIMATION
+    function createBackgroundChars() {
+        const container = document.getElementById("bg-animation");
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+
+        for (let i = 0; i < 80; i++) {
+            let span = document.createElement("span");
+            span.classList.add("char");
+
+            span.innerText = chars[Math.floor(Math.random() * chars.length)];
+
+            span.style.left = Math.random() * 100 + "vw";
+            span.style.animationDuration = (Math.random() * 6 + 6) + "s";
+            span.style.animationDelay = Math.random() * 5 + "s";
+            span.style.fontSize = (Math.random() * 10 + 14) + "px";
+
+            container.appendChild(span);
+        }
+    }
+
+    createBackgroundChars(); // 🔥 RUN
+
+});
+</script>
+
+</body>
+</html>
